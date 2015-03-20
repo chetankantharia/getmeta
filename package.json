@@ -1,0 +1,21 @@
+{
+    "name": "getMeta",
+    "version": "0.0.1",
+    "description": "Extract meta tags or info from webpage",
+    "main": "app.js",
+    "dependencies": {
+        "apicache": "^0.0.12",
+        "body-parser": "^1.10.1",
+        "cheerio": "^0.18.0",
+        "cors": "^2.5.2",
+        "express": "^4.11.0",
+        "request": "^2.51.0"
+    },
+    "devDependencies": {},
+    "author": "Chetan Kantharia <chetan.kantharia@gmail.com>",
+    "contributors": [{
+      "name":"Bruno Dmello",
+      "email":"bron10@gmail.com "
+    }],
+    "license": "ISC"
+}
