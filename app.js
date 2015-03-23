@@ -71,7 +71,7 @@ app.get('/', apicache('5 minutes'), function(req, res){
 			}
 		});
 	} else {
-		res.sendFile(__dirname +'public/index.html');
+		res.sendFile(__dirname +'/public/index.html');
 	}
 
 });
