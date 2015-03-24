@@ -5,10 +5,11 @@ var cheerio   = require('cheerio');
 var apicache  = require('apicache').options({ debug: true }).middleware;
 var cors      = require('cors');
 
+app.use(express.static(__dirname + "/public"));
 
 app.options(cors());
 
-app.get('/', apicache('5 minutes'), function(req, res){
+app.get('/v1', apicache('5 minutes'), function(req, res){
 
 	if(req.query.url) {
 		request(req.query.url, function(error, response, body){
