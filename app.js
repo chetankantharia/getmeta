@@ -12,7 +12,15 @@ app.options(cors());
 app.get('/v1', apicache('5 minutes'), function(req, res){
 
 	if(req.query.url) {
-		request(req.query.url, function(error, response, body){
+
+		var URL = req.query.url;
+
+		// Check for http(s) protocol if not then prepend
+		if(URL.indexOf("http://") !== 0 || URL.indexOf("https://") !== 0){
+			URL = "http://"+URL;
+		}
+
+		request(URL, function(error, response, body){
 
 			//On Error 
 			if(error){
