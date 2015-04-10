@@ -1,28 +1,39 @@
-var express   = require('express');
-var app       = express();
-var request   = require('request');
-var cheerio   = require('cheerio');
-var apicache  = require('apicache').options({ debug: true }).middleware;
-var cors      = require('cors');
+var express    = require('express');
+var app        = express();
+var request    = require('request');
+var cheerio    = require('cheerio');
+var apicache   = require('apicache').options({ debug: true }).middleware;
+var cors       = require('cors');
+var bodyParser = require('body-parser');
 
 app.use(express.static(__dirname + "/public"));
 
 app.options(cors());
 
-app.get('/v1', apicache('5 minutes'), function(req, res){
+//Middleware to handle POST Req.
+app.use(bodyParser.json());
+app.use(bodyParser.urlencoded({ extended: true }));
 
-	if(req.query.url) {
+app.post('/test', apicache('15 minutes'), function(req, res){
+	var URL = req.body && req.body.url;
+	
+	if(!URL){ res.status(500).json({"error":"no url present"}); }
 
-		var URL = req.query.url;
+	/******************************************
+	/ If URL Present
+	/*****************************************/
 
 		// Check for http(s) protocol if not then prepend
-		if(URL.indexOf("http://") !== 0 || URL.indexOf("https://") !== 0){
+		if(URL.indexOf("http://") === -1 && URL.indexOf("https://") === -1){
 			URL = "http://"+URL;
 		}
 
+		//Send a HTTP Request to url to fetch html page
 		request(URL, function(error, response, body){
 
-			//On Error 
+			console.log('fetching : ', URL);
+
+			//Error on fetching HTML page 
 			if(error){
 				res.status(500).json(error);
 			}
@@ -76,13 +87,12 @@ app.get('/v1', apicache('5 minutes'), function(req, res){
 						metaTag.description = defaultDescription;
 					}
 
-				res.status(200).json(metaTag);
+				res.status(200)
+					 .json(metaTag);
 			}
-		});
-	} else {
-		res.sendFile(__dirname +'/public/index.html');
-	}
-
+		})
 });
 
-app.listen(process.env.PORT || 3000);
+app.listen(process.env.PORT || 3000, function(){
+	console.log('Dev server running on PORT : 3000');
+});
