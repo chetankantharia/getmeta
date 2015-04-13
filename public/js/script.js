@@ -21,7 +21,7 @@ if (typeof postBox.addEventListener != "undefined") {
 
 /* Regex */
 function getURL(e){
-	var urlRegex = /\b(http|https)?(:\/\/)?(\S*)\.(\w{2,4})\b/ig;
+	var urlRegex = /\b(http|https)?(:\/\/)?(\S*)\.(\w{2,4})(\S*)\b/ig;
 	var regexValue = e.value.match(urlRegex);
 		if(regexValue === null){
 			showMetaInfo(null);
