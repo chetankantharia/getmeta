@@ -2,7 +2,6 @@ var express    = require('express');
 var app        = express();
 var request    = require('request');
 var cheerio    = require('cheerio');
-var apicache   = require('apicache').options({ debug: true }).middleware;
 var cors       = require('cors');
 var bodyParser = require('body-parser');
 
@@ -14,7 +13,7 @@ app.options(cors());
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 
-app.post('/test', apicache('15 minutes'), function(req, res){
+app.post('/v1', function(req, res){
 	var URL = req.body && req.body.url;
 	
 	if(!URL){ res.status(500).json({"error":"no url present"}); }
