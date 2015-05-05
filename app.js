@@ -55,7 +55,7 @@ app.post('/v1', function(req, res){
 			}
 
 			// On Response Body
-			if(body && con){
+			if(body && contentIsHTML){
 				var $ = cheerio.load(body);
 
 				var title = $('title');
