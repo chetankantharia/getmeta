@@ -15,6 +15,7 @@ app.use(bodyParser.urlencoded({ extended: true }));
 
 app.post('/v1', function(req, res){
 	var URL = req.body && req.body.url;
+	var contentIsHTML = undefined;
 	
 	if(!URL){ res.status(500).json({"error":"no url present"}); }
 
@@ -31,14 +32,30 @@ app.post('/v1', function(req, res){
 		request(URL, function(error, response, body){
 
 			console.log('fetching : ', URL);
+			console.log('response : ', response.headers['content-type']);
+
+			if(response.headers['content-type'] === 'text/html; charset=utf-8'){
+				contentIsHTML = true;
+			} else {
+				contentIsHTML = false;
+				res.status(500).json({
+					status : 500,
+					error : "Error occured while fetching url, content-type should be text/html",
+					url : URL
+				});
+			}
 
 			//Error on fetching HTML page 
 			if(error){
-				res.status(500).json(error);
+				res.status(500).json({
+					status : 500,
+					error : "Error occured while fetching url",
+					url : URL
+				});
 			}
 
 			// On Response Body
-			if(body){
+			if(body && con){
 				var $ = cheerio.load(body);
 
 				var title = $('title');
@@ -48,6 +65,7 @@ app.post('/v1', function(req, res){
 				//Init default title and description
 				var defaultTitle = title[0].children[0].data;
 				var defaultDescription;
+				var defaultUrl = URL;
 
 				var metaTag = {};
 
@@ -84,6 +102,9 @@ app.post('/v1', function(req, res){
 					}
 					if(!metaTag.description && defaultDescription){
 						metaTag.description = defaultDescription;
+					}
+					if(!metaTag.url && defaultUrl){
+						metaTag.url = defaultUrl;
 					}
 
 				res.status(200)
