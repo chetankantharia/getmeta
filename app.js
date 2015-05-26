@@ -15,6 +15,7 @@ app.use(bodyParser.urlencoded({ extended: true }));
 
 app.post('/v1', function(req, res){
 	var URL = req.body && req.body.url;
+	var DOMAIN;
 	var contentIsHTML = undefined;
 	
 	if(!URL){ res.status(500).json({"error":"no url present"}); }
@@ -28,13 +29,20 @@ app.post('/v1', function(req, res){
 			URL = "http://"+URL;
 		}
 
+		//Set DOMAIN - get hostname from url
+		var matchDomain = URL.match(/^https?\:\/\/([^\/?#]+)/i);
+		DOMAIN = matchDomain && matchDomain[0];
+
+
 		//Send a HTTP Request to url to fetch html page
 		request(URL, function(error, response, body){
 
 			console.log('fetching : ', URL);
 			console.log('response : ', response.headers['content-type']);
 
-			if(response.headers['content-type'] === 'text/html; charset=utf-8'){
+			//regex to check content-type = text/html
+			var checkContentType = new RegExp('text\/html');
+			if(checkContentType.test(response.headers['content-type'])){
 				contentIsHTML = true;
 			} else {
 				contentIsHTML = false;
@@ -63,9 +71,9 @@ app.post('/v1', function(req, res){
 				var keys  = Object.keys(meta);
 
 				//Init default title and description
-				var defaultTitle = title[0].children[0].data;
+				var defaultTitle = title[0] && title[0].children[0].data;
 				var defaultDescription;
-				var defaultUrl = URL;
+				var defaultUrl = defaultTitle && URL;
 
 				var metaTag = {};
 
@@ -83,7 +91,7 @@ app.post('/v1', function(req, res){
 				  	}
 
 				  	if(meta[key].attribs.property === 'og:url'){
-				  		metaTag.url = meta[key].attribs.content;
+				  			metaTag.url = meta[key].attribs.content;
 				  	}
 
 				  	if(meta[key].attribs.property === 'og:description'){
@@ -91,7 +99,15 @@ app.post('/v1', function(req, res){
 				  	}
 
 				  	if(meta[key].attribs.property === 'og:image'){
-				  		metaTag.image = meta[key].attribs.content;
+				  		//check http or https prefix for image url
+				  		var checkPrefix = new RegExp('http|https');
+				  		if(checkPrefix.test(meta[key].attribs.content)){
+				  			metaTag.image = meta[key].attribs.content;
+				  			console.log('Image', metaTag.image);
+				  		} else {
+				  			metaTag.image = DOMAIN + meta[key].attribs.content;
+				  			console.log('Image', metaTag.image);
+				  		}
 				  	}
 				  }
 				});
