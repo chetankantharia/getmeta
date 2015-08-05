@@ -5,6 +5,7 @@
   "main": "app.js",
   "dependencies": {
     "apicache": "^0.0.12",
+    "async": "^1.4.0",
     "body-parser": "^1.10.1",
     "cheerio": "^0.18.0",
     "cors": "^2.5.2",

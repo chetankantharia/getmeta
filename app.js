@@ -6,7 +6,8 @@ var cors       = require('cors');
 var bodyParser = require('body-parser');
 var imageSize  = require('image-size');
 var url        = require('url');
-var http       = require('http');
+var https      = require('https');
+var async      = require('async');
 
 /*
   Helper functions
@@ -30,18 +31,18 @@ var getMeta = {
     return checkContentType.test(this.getContentType(response))
   },
 
-  getImageInfo : function(imageUrl){
+  getImageInfo : function(imageUrl, cb){
     var options = url.parse(imageUrl);
     //Download image
-    http.get(options, function(response){
+    https.get(options, function(response){
       var chunks = [];
 
       response.on('data', function(chunk){
         chunks.push(chunk);
       }).on('end', function(){
         var buffer = Buffer.concat(chunks);
-        console.log(imageSize(buffer))
-        return imageSize(buffer)
+        var result = imageSize(buffer);
+        cb(result)
       })
     });
   },
@@ -88,11 +89,11 @@ var getMeta = {
           if(checkPrefix.test(meta[key].attribs.content)){
             metaTag.image = {};
             metaTag.image.url = meta[key].attribs.content;
-            console.log('Image', metaTag.image);
+            //console.log('Image', metaTag.image);
           } else {
             metaTag.image = {};
             metaTag.image.url  = DOMAIN + meta[key].attribs.content;
-            console.log('Image', metaTag.image);
+            //console.log('Image', metaTag.image);
           }
 
         }
@@ -160,23 +161,25 @@ app.post('/v1', function(req, res){
         var contentIsHTML = getMeta.isContentTypeValid(response, 'html');
 
         if(contentIsHTML && body){
-          
           /* Cheerio Starts Here */
-          var metaTag = getMeta.getMetaTag(body, URL);
-
-          console.log('metaTag', metaTag);
-
-          if(metaTag.image.url){
-            metaTag.image.info = getMeta.getImageInfo(metaTag.image.url);
-
-            if(metaTag.image.info){
-              res.status(200)
-                .json(metaTag)
+          async.waterfall([
+            function (callback){
+              /* Get Meta Tags */
+              callback(null, getMeta.getMetaTag(body, URL));
+            },
+            function (meta, callback){
+              /* Check Image */
+              getMeta.getImageInfo(meta.image.url, function(data){
+                meta.image.info = data;
+                callback( null, meta);
+              });
             }
-          } else {
-            res.status(200)
-              .json(metaTag);
-          }
+            ], function(error, result){
+              console.log('Result', result);
+              res.status(200)
+                .json(result);
+            })
+
         } else {
           console.log('Content is not HTML');
           res.status(500).json({
