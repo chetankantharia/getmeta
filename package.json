@@ -9,7 +9,9 @@
     "cheerio": "^0.18.0",
     "cors": "^2.5.2",
     "express": "^4.11.0",
-    "request": "^2.51.0"
+    "image-size": "^0.3.5",
+    "request": "^2.51.0",
+    "url": "^0.10.3"
   },
   "devDependencies": {},
   "author": "Chetan Kantharia <chetan.kantharia@gmail.com>",
