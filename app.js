@@ -6,8 +6,14 @@ var cors       = require('cors');
 var bodyParser = require('body-parser');
 var imageSize  = require('image-size');
 var url        = require('url');
-var https      = require('https');
 var async      = require('async');
+
+/*
+  CACHE
+*/
+var cache = {
+  '':{}
+}
 
 /*
   Helper functions
@@ -33,18 +39,27 @@ var getMeta = {
 
   getImageInfo : function(imageUrl, cb){
     var options = url.parse(imageUrl);
-    //Download image
-    https.get(options, function(response){
-      var chunks = [];
+    var chunks  = []; 
+    var result  = {};
 
-      response.on('data', function(chunk){
-        chunks.push(chunk);
-      }).on('end', function(){
-        var buffer = Buffer.concat(chunks);
-        var result = imageSize(buffer);
-        cb(result)
+    request
+      .get(options.href)
+      .on('response', function (response){
+        result.size = response.headers['content-length']; 
       })
-    });
+      .on('data', function (chunk){
+        chunks.push(chunk);
+      })
+      .on('end', function(){
+        var buffer = Buffer.concat(chunks);
+        var info = imageSize(buffer);
+
+        Object.keys(info).forEach(function(key){
+          result[key] = info[key];
+        })
+
+        cb(result);
+      })
   },
 
   getMetaTag : function(body, URL){
@@ -145,51 +160,63 @@ app.post('/v1', function(req, res){
     var matchDomain = URL.match(/^https?\:\/\/([^\/?#]+)/i);
     DOMAIN = matchDomain && matchDomain[0];
 
+    /* Check is URL already present in cache */
+    if(cache[URL]){
+      console.log('From Cache : ',URL);
+      res.status(200)
+        .json(cache[URL]);
+    } else {
+      //Send a HTTP Request to url to fetch html page
+      request(URL, function(error, response, body){
 
-    //Send a HTTP Request to url to fetch html page
-    request(URL, function(error, response, body){
-
-      /* Check for error */
-      if(error){
-        res.status(500).json({
-          status : 500,
-          error : "Error occured while fetching url",
-          url : URL
-        });
-      } else {
-
-        var contentIsHTML = getMeta.isContentTypeValid(response, 'html');
-
-        if(contentIsHTML && body){
-          /* Cheerio Starts Here */
-          async.waterfall([
-            function (callback){
-              /* Get Meta Tags */
-              callback(null, getMeta.getMetaTag(body, URL));
-            },
-            function (meta, callback){
-              /* Check Image */
-              getMeta.getImageInfo(meta.image.url, function(data){
-                meta.image.info = data;
-                callback( null, meta);
-              });
-            }
-            ], function(error, result){
-              console.log('Result', result);
-              res.status(200)
-                .json(result);
-            })
-
-        } else {
-          console.log('Content is not HTML');
+        /* Check for error */
+        if(error){
           res.status(500).json({
             status : 500,
-            error : "Error content is not html",
+            error : "Error occured while fetching url",
             url : URL
           });
+        } else {
+
+          var contentIsHTML = getMeta.isContentTypeValid(response, 'html');
+
+          if(contentIsHTML && body){
+            /* Cheerio Starts Here */
+            async.waterfall([
+              function (callback){
+                /* Get Meta Tags */
+                callback(null, getMeta.getMetaTag(body, URL));
+              },
+              function (meta, callback){
+                /* Check Image */
+                if(meta.image && meta.image.url){
+                  getMeta.getImageInfo(meta.image.url, function(data){
+                    meta.image.info = data;
+                    callback( null, meta);
+                  });
+                } else {
+                  callback( null, meta);
+                }
+              }
+              ], function(error, result){
+                //Store result in cache
+                cache[result.url] = result
+                console.log('Fetch :', result.url)
+                res.status(200)
+                  .json(result);
+              })
+
+          } else {
+            console.error('Content is not HTML');
+            res.status(500).json({
+              status : 500,
+              error : "Error content is not html",
+              url : URL
+            });
+          }
         }
-      }
-    })
+      })
+    }
 });
 
 app.listen(process.env.PORT || 3000, function(){
